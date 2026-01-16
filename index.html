@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Sổ Bộ Chùa Bửu Đà</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; background-color: #f0f2f5; padding-bottom: 80px; -webkit-tap-highlight-color: transparent; }
+        .input-group { display: none; }
+        .input-group.active { display: block; animation: slideUp 0.3s ease-out; }
+        @keyframes slideUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        
+        input, select, textarea { width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px; margin-top: 4px; font-size: 15px; }
+        input:focus, select:focus, textarea:focus { outline: none; border-color: #d97706; }
+        label { font-weight: 700; color: #475569; font-size: 0.8rem; margin-top: 10px; display: block; text-transform: uppercase; }
+        
+        .tab-btn { padding: 12px; font-weight: bold; color: #64748b; border-bottom: 3px solid transparent; flex: 1; text-align: center; }
+        .tab-btn.active { color: #d97706; border-bottom-color: #d97706; background: #fff7ed; }
+        .blacklist-alert { display: none; animation: shake 0.5s; }
+        @keyframes shake { 0%, 100% { transform: translateX(0); } 25%, 75% { transform: translateX(-5px); } 50% { transform: translateX(5px); } }
+
+        /* Style Phiếu */
+        .work-ticket { background: #fff; border: 2px solid #854d0e; border-radius: 8px; position: relative; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-bottom: 20px; overflow: hidden; font-family: 'Segoe UI', sans-serif; }
+        .ticket-header { background: #854d0e; color: #fef3c7; padding: 8px; text-align: center; border-bottom: 1px solid #ca8a04; }
+        .ticket-body { padding: 10px 12px; }
+        
+        /* Modal */
+        .image-modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 99999; display: none; align-items: center; justify-content: center; flex-direction: column; padding: 20px; }
+        .image-modal img { max-width: 100%; max-height: 80vh; border: 2px solid white; border-radius: 4px; box-shadow: 0 0 20px rgba(0,0,0,0.5); object-fit: contain; }
+        .close-modal { margin-top: 20px; color: white; background: #ea580c; padding: 10px 30px; border-radius: 30px; font-weight: bold; cursor: pointer; border: 2px solid white; }
+        #globalLoading { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255, 255, 255, 0.8); z-index: 999999; align-items: center; justify-content: center; flex-direction: column; }
+        .spinner { width: 40px; height: 40px; border: 4px solid #f3f3f3; border-top: 4px solid #d97706; border-radius: 50%; animation: spin 1s linear infinite; margin-bottom: 10px; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .data-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+        .data-table th { background: #ea580c; color: white; padding: 8px; text-align: left; }
+        .data-table td { border-bottom: 1px solid #ddd; padding: 8px; vertical-align: top; }
+        .data-table tr:nth-child(even) { background: #fff7ed; }
+    </style>
+</head>
+<body class="flex justify-center min-h-screen">
+
+    <div id="globalLoading"><div class="spinner"></div><div class="text-amber-700 font-bold">Đang xử lý...</div></div>
+
+    <div class="w-full max-w-4xl bg-white shadow-xl min-h-screen md:min-h-0 md:my-5 md:rounded-2xl overflow-hidden">
+        <div class="bg-gradient-to-r from-amber-700 to-amber-800 p-4 text-white sticky top-0 z-50 shadow-md flex justify-between items-center">
+            <div><h1 class="text-xl font-bold uppercase"><i class="fa-solid fa-book-journal-whills mr-2"></i> Sổ Bộ Công Việc</h1></div>
+        </div>
+
+        <div class="flex border-b border-gray-200 bg-white sticky top-[60px] z-40 shadow-sm">
+            <button onclick="chuyenTab('NHAP')" id="tabNhap" class="tab-btn active"><i class="fa-solid fa-pen-to-square mr-1"></i> NHẬP MỚI</button>
+            <button onclick="chuyenTab('XEM'); taiDanhSach('5')" id="tabXem" class="tab-btn"><i class="fa-solid fa-list-check mr-1"></i> XEM & PHÂN CÔNG</button>
+        </div>
+
+        <div id="viewNhap" class="p-5">
+            <div class="bg-amber-50 p-3 rounded-lg border border-amber-200 mb-4">
+                <label class="text-amber-800 mt-0">Chọn Loại Công Việc:</label>
+                <select id="loaiCongViec" onchange="doiForm()" class="bg-white border-amber-300 font-bold text-amber-900 text-lg mt-1 w-full">
+                    <option value="VE_NHA">🙏 Cúng Thất / Tại Gia</option>
+                    <option value="DAM_TANG">⚰️ Đám Tang</option>
+                    <option value="TRAI_TANG">🍱 Trai Tăng</option>
+                    <option value="KHONG_NHAN">⛔ Thêm vào DS Đen</option>
+                </select>
+            </div>
+            <div id="blacklistAlert" class="blacklist-alert bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-4 rounded shadow-md">
+                <p class="font-bold"><i class="fa-solid fa-triangle-exclamation mr-1"></i> CẢNH BÁO KHÔNG NHẬN!</p>
+                <p class="text-sm" id="blacklistReason"></p>
+            </div>
+            <div id="group_VE_NHA" class="input-group active">
+                <div class="grid grid-cols-2 gap-3">
+                    <div><label>Ngày Thỉnh (ÂL)</label><input type="text" id="vn_ngay" class="enter-next" placeholder="VD: 15/7"></div>
+                    <div><label>Giờ Cúng</label><input type="text" id="vn_gio" class="enter-next" placeholder="VD: 9h00"></div>
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div><label>Lễ Cúng</label><input type="text" id="vn_leCung" class="enter-next" placeholder="VD: Tuần thất..."></div>
+                    <div><label>Số Thầy</label><input type="text" id="vn_soThay" class="enter-next" placeholder="SL"></div>
+                </div>
+                <label>Tên Vong / Trai Chủ</label><input type="text" id="vn_tenCung" class="enter-next">
+                <label>Địa Chỉ</label><input type="text" id="vn_diaChi" class="enter-next border-l-4 border-blue-400" onblur="checkDiaChi(this.value)">
+                <label>SĐT Liên Hệ</label><input type="text" id="vn_sdt" class="enter-next">
+                <label>Ghi Chú</label><textarea id="vn_ghiChu" rows="2"></textarea>
+            </div>
+            <div id="group_DAM_TANG" class="input-group">
+                 <label>Tên Người Mất</label><input type="text" id="dt_tenNguoiMat" class="enter-next font-bold">
+                 <label>Địa Chỉ</label><input type="text" id="dt_diaChi" class="enter-next border-l-4 border-blue-400" onblur="checkDiaChi(this.value)">
+                 <div class="grid grid-cols-2 gap-3">
+                    <div><label>SĐT Liên Hệ</label><input type="text" id="dt_sdt" class="enter-next"></div>
+                    <div><label>Thầy Lo Đám (Gốc)</label><input type="text" id="dt_loDam" class="enter-next"></div>
+                 </div>
+                 <div class="bg-gray-100 p-3 rounded mt-3">
+                    <strong class="text-blue-700 block mb-2 text-sm uppercase">⚰️ NHẬP LIỆM</strong>
+                    <div class="grid grid-cols-2 gap-2">
+                        <input type="text" id="dt_gioNL" class="enter-next mt-0" placeholder="Giờ">
+                        <input type="text" id="dt_ngayNL" class="enter-next mt-0" placeholder="Ngày">
+                    </div>
+                 </div>
+                 <div class="bg-gray-100 p-3 rounded mt-2">
+                    <strong class="text-red-700 block mb-2 text-sm uppercase">🔥 ĐỘNG QUAN</strong>
+                    <div class="grid grid-cols-2 gap-2">
+                        <input type="text" id="dt_gioDQ" class="enter-next mt-0" placeholder="Giờ">
+                        <input type="text" id="dt_ngayDQ" class="enter-next mt-0" placeholder="Ngày">
+                    </div>
+                 </div>
+                 <label>Ghi Chú</label><textarea id="dt_ghiChu" rows="2"></textarea>
+            </div>
+            <div id="group_TRAI_TANG" class="input-group">
+                 <div class="grid grid-cols-2 gap-3">
+                    <div><label>Ngày Cúng</label><input type="text" id="tt_ngay" class="enter-next"></div>
+                    <div><label>Tiền Cúng</label><input type="text" id="tt_tienCung" class="enter-next"></div>
+                 </div>
+                 <label>Tên Trai Chủ</label><input type="text" id="tt_tenCung" class="enter-next">
+                 <div class="grid grid-cols-2 gap-3">
+                    <div><label>Số Bàn Ăn</label><input type="text" id="tt_banAn" class="enter-next" placeholder="VD: 2 bàn"></div>
+                    <div><label>SĐT</label><input type="text" id="tt_sdt" class="enter-next"></div>
+                 </div>
+                 <label>Tứ Sự (Cúng gì)</label><input type="text" id="tt_tuSu" class="enter-next" placeholder="VD: Y áo, thuốc...">
+                 <label>Tác Bạch</label><input type="text" id="tt_tacBach" class="enter-next">
+                 <label>Ghi Chú</label><textarea id="tt_ghiChu" rows="2"></textarea>
+            </div>
+            <div id="group_KHONG_NHAN" class="input-group">
+                 <label class="text-red-600">Địa chỉ</label><input type="text" id="kn_diaChi" class="enter-next border-red-200">
+                 <label class="text-red-600">Lý do</label><input type="text" id="kn_lyDo" class="enter-next border-red-200">
+                 <label class="text-red-600">SĐT</label><input type="text" id="kn_sdt" class="enter-next border-red-200">
+                 <label class="text-red-600">Trai Chủ</label><input type="text" id="kn_traiChu" class="enter-next border-red-200">
+            </div>
+            <button onclick="guiDuLieu()" id="btnLuu" class="w-full mt-8 bg-gradient-to-r from-amber-600 to-amber-700 text-white font-bold py-3.5 rounded-xl shadow-lg active:scale-95 flex justify-center items-center gap-2 hover:from-amber-700 hover:to-amber-800 transition">
+                <i class="fa-solid fa-cloud-arrow-up"></i> LƯU VÀO SỔ BỘ
+            </button>
+        </div>
+
+        <div id="viewXem" class="hidden bg-gray-50 min-h-[500px]">
+            <div class="p-4 bg-white border-b border-gray-200 sticky top-0 z-30 shadow-sm flex flex-col gap-3">
+                <select id="filterSheet" onchange="taiDanhSach('5')" class="bg-gray-100 border-gray-300 font-bold text-gray-700 py-3 px-4 w-full rounded-lg text-lg">
+                    <option value="VE_NHA">🙏 Cúng Thất (Về Nhà)</option>
+                    <option value="DAM_TANG">⚰️ Đám Tang</option>
+                    <option value="TRAI_TANG">🍱 Trai Tăng</option>
+                </select>
+                <div class="flex justify-between items-center text-sm text-gray-500">
+                    <span id="statusText">5 đám gần nhất</span>
+                    <button id="btnShowAll" onclick="taiDanhSach('all')" class="bg-blue-100 text-blue-700 px-3 py-1 rounded font-bold hover:bg-blue-200">
+                        <i class="fa-solid fa-table-list"></i> Hiện Tất Cả
+                    </button>
+                </div>
+            </div>
+            <div id="listContainer" class="p-4 pb-20 space-y-6"></div>
+        </div>
+    </div>
+
+    <div id="imgModal" class="image-modal">
+        <div class="text-white mb-4 text-center font-bold text-lg animate-pulse">
+            📷 ẢNH ĐÃ TẠO XONG!<br>
+            <span class="text-sm font-normal text-amber-300">Nhấn giữ vào ảnh để LƯU</span>
+        </div>
+        <img id="generatedImage" src="" alt="Phiếu">
+        <button class="close-modal" onclick="document.getElementById('imgModal').style.display='none'">
+            <i class="fa-solid fa-xmark mr-2"></i> ĐÓNG LẠI
+        </button>
+    </div>
+
+    <script>
+        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzjTIL1vanCyy1fiSOyj_ucFrw1o1zkFLLGotZenS_iyCF48tDtnfmzlBxD38O2slAUpw/exec";
+
+        function showLoading() { document.getElementById('globalLoading').style.display = 'flex'; }
+        function hideLoading() { document.getElementById('globalLoading').style.display = 'none'; }
+        function callApi(data) { return fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify(data) }).then(res => res.json()); }
+
+        function taiAnh(elementId, stt) {
+            if (typeof html2canvas === 'undefined') { alert("Đang tải thư viện, thử lại sau 2s"); return; }
+            showLoading();
+            const element = document.getElementById(elementId);
+            const controls = element.querySelectorAll('.control-area');
+            controls.forEach(el => el.style.display = 'none'); 
+
+            setTimeout(() => {
+                html2canvas(element, { scale: 2, backgroundColor: "#ffffff", useCORS: true }).then(canvas => {
+                    controls.forEach(el => el.style.display = 'block'); 
+                    hideLoading();
+                    const imgData = canvas.toDataURL("image/png");
+                    try {
+                        const link = document.createElement('a');
+                        link.download = 'Phieu-Phat-Su-STT-' + stt + '.png';
+                        link.href = imgData; document.body.appendChild(link); link.click(); document.body.removeChild(link);
+                    } catch(e){}
+                    document.getElementById("generatedImage").src = imgData;
+                    document.getElementById("imgModal").style.display = "flex";
+                }).catch(err => {
+                    controls.forEach(el => el.style.display = 'block');
+                    hideLoading(); alert("Lỗi: " + err);
+                });
+            }, 100);
+        }
+
+        function luuPhanCong(rowIndex, inputId, stt) {
+            const tenThay = document.getElementById(inputId).value;
+            const sheetName = document.getElementById("filterSheet").value;
+            showLoading();
+            callApi({ action: "CAP_NHAT_THAY", rowIndex: rowIndex, sheetName: sheetName, tenThay: tenThay })
+            .then(data => { hideLoading(); if(data.result === "success") alert("✅ Đã cập nhật!"); else alert(data.msg); })
+            .catch(err => { hideLoading(); alert("Lỗi: " + err); });
+        }
+
+        function xoaDong(rowIndex) {
+            if(!confirm("Xóa dòng này?")) return;
+            showLoading();
+            callApi({ action: "XOA_DONG", rowIndex: rowIndex, loai: "TRAI_TANG" }).then(data => { hideLoading(); alert(data.msg); taiDanhSach('5'); });
+        }
+
+        function checkDiaChi(diaChi) {
+            if (!diaChi || diaChi.length < 5) return;
+            callApi({ action: "CHECK_BLACKLIST", diaChi: diaChi }).then(data => {
+                const alertBox = document.getElementById("blacklistAlert");
+                if (data.isBlacklisted) { alertBox.style.display = "block"; document.getElementById("blacklistReason").textContent = "Lý do: " + data.reason; } 
+                else alertBox.style.display = "none";
+            });
+        }
+
+        function taiDanhSach(limit = '5') {
+            const sheet = document.getElementById("filterSheet").value;
+            const container = document.getElementById('listContainer');
+            const statusText = document.getElementById('statusText');
+            statusText.textContent = limit === 'all' ? "Đang hiện TẤT CẢ" : "5 đám gần nhất";
+            container.innerHTML = '<div class="p-10 text-center text-gray-400"><i class="fa-solid fa-spinner fa-spin text-3xl mb-2"></i><br>Đang tải...</div>';
+
+            fetch(SCRIPT_URL + "?sheet=" + sheet + "&limit=" + limit)
+            .then(response => response.json()).then(data => {
+                if (!data || data.length === 0) { container.innerHTML = '<div class="p-10 text-center text-gray-400">Chưa có dữ liệu.</div>'; return; }
+                let html = '';
+
+                // DẠNG BẢNG
+                if (limit === 'all') {
+                    html = '<div class="overflow-x-auto"><table class="data-table"><thead><tr>';
+                    if (sheet === "VE_NHA") html += '<th>Ngày</th><th>Tên</th><th>Địa Chỉ</th><th>SĐT</th><th>Quý Thầy</th>';
+                    else if (sheet === "DAM_TANG") html += '<th>Hương Linh</th><th>Ngày Giờ</th><th>Địa Chỉ</th><th>SĐT</th><th>Quý Thầy</th>';
+                    else html += '<th>Ngày</th><th>Tên</th><th>Tiền</th><th>Bàn</th><th>Tứ Sự</th><th>Tác Bạch</th>';
+                    html += '</tr></thead><tbody>';
+                    data.forEach(item => {
+                        html += '<tr>';
+                        if (sheet === "VE_NHA") html += `<td>${item.ngay}</td><td class="font-bold">${item.ten}</td><td>${item.diaChi}</td><td>${item.sdt}</td><td class="text-blue-700 font-bold">${item.thay}</td>`;
+                        else if (sheet === "DAM_TANG") html += `<td class="font-bold uppercase">${item.ten}</td><td style="font-size:12px">${item.ngay.replace(/<br>/g, ' ')}</td><td>${item.diaChi}</td><td>${item.sdt}</td><td class="text-blue-700 font-bold">${item.thay}</td>`;
+                        else html += `<td>${item.ngay}</td><td>${item.ten}</td><td>${item.tien}</td><td>${item.ban}</td><td>${item.tusu}</td><td>${item.tacbach}</td>`;
+                        html += '</tr>';
+                    });
+                    html += '</tbody></table></div>';
+                } 
+                // DẠNG PHIẾU PHẬT SỰ (XEM 5 DÒNG)
+                else {
+                    data.forEach(item => {
+                        if (sheet === "TRAI_TANG") {
+                            html += `
+                            <div class="work-ticket bg-white mb-6">
+                                <div class="ticket-header font-bold text-sm uppercase bg-emerald-700 text-white p-2 text-center">
+                                    TRAI TĂNG - NGÀY ${item.ngay}
+                                </div>
+                                <div class="ticket-body">
+                                    <div class="text-center mb-3">
+                                        <div class="font-bold text-xl text-emerald-800 uppercase">${item.ten}</div>
+                                        ${item.sdt ? `<div class="text-blue-600 font-bold"><i class="fa-solid fa-phone"></i> ${item.sdt}</div>` : ''}
+                                    </div>
+                                    <div class="grid grid-cols-2 gap-2 mb-3">
+                                        <div class="bg-yellow-50 border border-yellow-200 p-2 rounded">
+                                            <div class="text-xs font-bold text-amber-800 uppercase">Tiền Cúng</div>
+                                            <div class="font-bold text-gray-900">${item.tien || '-'}</div>
+                                        </div>
+                                        <div class="bg-orange-50 border border-orange-200 p-2 rounded">
+                                            <div class="text-xs font-bold text-orange-800 uppercase">Bàn Ăn (Bếp)</div>
+                                            <div class="font-bold text-red-600 text-lg">${item.ban || 'Không'}</div>
+                                        </div>
+                                    </div>
+                                    <div class="space-y-1 border-t pt-2 text-sm">
+                                        <div><span class="font-bold text-gray-700">🎁 Tứ Sự:</span> ${item.tusu || '-'}</div>
+                                        <div><span class="font-bold text-gray-700">📜 Tác Bạch:</span> ${item.tacbach || '-'}</div>
+                                        ${item.ghiChu ? `<div class="italic text-gray-500 mt-1">📝 ${item.ghiChu}</div>` : ''}
+                                    </div>
+                                </div>
+                                <div class="p-2 border-t bg-gray-50 flex justify-end control-area">
+                                     <button onclick="xoaDong(${item.rowIndex})" class="text-red-500 hover:text-red-700 font-bold text-sm px-3 py-1 border border-red-200 rounded bg-white">
+                                        <i class="fa-solid fa-trash-can mr-1"></i> Xóa
+                                    </button>
+                                </div>
+                            </div>`;
+                        } else {
+                            let chiTietHTML = '';
+                            if (sheet === "VE_NHA") {
+                                // DESIGN VỀ NHÀ: NGÀY GIỜ TO ĐỎ
+                                chiTietHTML = `
+                                    <div class="ticket-body">
+                                        <div class="text-center mb-3">
+                                            <h2 class="text-xl font-bold text-red-800 uppercase leading-tight">${item.ten}</h2>
+                                            <div class="text-sm text-gray-600 font-semibold">(${item.le})</div>
+                                        </div>
+                                        
+                                        <div class="bg-yellow-50 border border-yellow-300 rounded p-2 text-center mb-3 shadow-inner">
+                                            <span class="block text-xs font-bold text-gray-500 uppercase">Thời gian cử hành</span>
+                                            <span class="text-xl font-black text-red-600">Ngày ${item.ngay} - Lúc: ${item.gio}</span>
+                                        </div>
+
+                                        <div class="space-y-1 text-sm text-gray-800">
+                                            <div class="flex"><span class="font-bold w-12 text-amber-900">Đ/C:</span> <span class="flex-1">${item.diaChi}</span></div>
+                                            <div class="flex"><span class="font-bold w-12 text-amber-900">SĐT:</span> <span class="flex-1 font-bold text-blue-800">${item.sdt}</span></div>
+                                            ${item.soThay ? `<div class="flex"><span class="font-bold w-12 text-amber-900">Số:</span> <span class="flex-1 font-bold text-red-600">${item.soThay}</span></div>` : ''}
+                                            ${item.ghiChu ? `<div class="italic text-gray-600 mt-1 border-t pt-1">${item.ghiChu}</div>` : ''}
+                                        </div>
+                                    </div>`;
+                            } else { 
+                                // DESIGN ĐÁM TANG
+                                chiTietHTML = `
+                                    <div class="ticket-body">
+                                        <div class="text-center mb-3">
+                                            <h2 class="text-xl font-bold text-red-800 uppercase leading-tight">${item.ten}</h2>
+                                            <div class="text-xs text-gray-500 font-bold uppercase tracking-wider mt-1">Hương Linh</div>
+                                        </div>
+
+                                        <div class="grid grid-cols-2 gap-2 mb-3">
+                                            <div class="bg-blue-50 border border-blue-200 p-2 rounded text-center">
+                                                <div class="text-xs font-bold text-blue-800 uppercase">Nhập Liệm</div>
+                                                <div class="font-bold text-gray-900 text-sm">${item.gioNL}</div>
+                                                <div class="font-bold text-gray-900 text-sm">${item.ngayNL}</div>
+                                            </div>
+                                            <div class="bg-red-50 border border-red-200 p-2 rounded text-center">
+                                                <div class="text-xs font-bold text-red-800 uppercase">Động Quan</div>
+                                                <div class="font-bold text-gray-900 text-sm">${item.gioDQ}</div>
+                                                <div class="font-bold text-gray-900 text-sm">${item.ngayDQ}</div>
+                                            </div>
+                                        </div>
+
+                                        <div class="space-y-1 text-sm text-gray-800">
+                                            <div><span class="font-bold text-amber-900">Đ/C:</span> ${item.diaChi}</div>
+                                            <div><span class="font-bold text-amber-900">SĐT:</span> <span class="font-bold text-blue-800">${item.sdt}</span></div>
+                                            ${item.ghiChu ? `<div class="italic text-gray-600 mt-1">Ghi chú: ${item.ghiChu}</div>` : ''}
+                                        </div>
+                                    </div>`;
+                            }
+
+                            html += `
+                            <div id="card-${item.stt}" class="work-ticket">
+                                <div class="ticket-header">
+                                    <div class="font-bold text-base uppercase tracking-wide">CHÙA BỬU ĐÀ - PHIẾU PHẬT SỰ</div>
+                                    <div class="text-xs font-normal opacity-80">Mã số: #${item.stt}</div>
+                                </div>
+                                ${chiTietHTML}
+                                <div class="control-area bg-gray-50 p-2 border-t border-gray-200">
+                                    <div class="flex gap-2 mb-2 items-center">
+                                        <span class="text-xs font-bold text-gray-500 uppercase whitespace-nowrap">Quý Thầy:</span>
+                                        <input id="input_thay_${item.stt}" value="${item.thay||''}" class="flex-1 p-1 px-2 border rounded text-sm font-bold text-blue-800 h-8">
+                                        <button onclick="luuPhanCong(${item.rowIndex}, 'input_thay_${item.stt}', '${item.stt}')" class="bg-blue-600 text-white px-3 h-8 rounded text-sm font-bold">LƯU</button>
+                                    </div>
+                                    <button onclick="taiAnh('card-${item.stt}', '${item.stt}')" id="btn_dl_${item.stt}" class="w-full bg-emerald-600 text-white py-2 rounded text-sm font-bold shadow hover:bg-emerald-700">
+                                        <i class="fa-solid fa-camera mr-2"></i> TẢI ẢNH GỬI THẦY
+                                    </button>
+                                </div>
+                            </div>`;
+                        }
+                    });
+                }
+                container.innerHTML = html;
+            });
+        }
+
+        function guiDuLieu() {
+            const loai = document.getElementById('loaiCongViec').value;
+            let data = { action: "LUU_MOI", loai: loai };
+            if (loai === "VE_NHA") {
+                data.ngay = document.getElementById('vn_ngay').value; data.gio = document.getElementById('vn_gio').value;
+                data.leCung = document.getElementById('vn_leCung').value; data.soThay = document.getElementById('vn_soThay').value;
+                data.tenCung = document.getElementById('vn_tenCung').value; data.diaChi = document.getElementById('vn_diaChi').value;
+                data.sdt = document.getElementById('vn_sdt').value; data.ghiChu = document.getElementById('vn_ghiChu').value;
+            } else if (loai === "DAM_TANG") {
+                data.tenNguoiMat = document.getElementById('dt_tenNguoiMat').value; data.diaChi = document.getElementById('dt_diaChi').value;
+                data.sdt = document.getElementById('dt_sdt').value; data.loDam = document.getElementById('dt_loDam').value;
+                data.gioNL = document.getElementById('dt_gioNL').value; data.ngayNL = document.getElementById('dt_ngayNL').value;
+                data.gioDQ = document.getElementById('dt_gioDQ').value; data.ngayDQ = document.getElementById('dt_ngayDQ').value;
+                data.ghiChu = document.getElementById('dt_ghiChu').value;
+            } else if (loai === "TRAI_TANG") {
+                data.ngay = document.getElementById('tt_ngay').value; data.tienCung = document.getElementById('tt_tienCung').value;
+                data.tenCung = document.getElementById('tt_tenCung').value; data.banAn = document.getElementById('tt_banAn').value;
+                data.sdt = document.getElementById('tt_sdt').value; data.tuSu = document.getElementById('tt_tuSu').value;
+                data.tacBach = document.getElementById('tt_tacBach').value; data.ghiChu = document.getElementById('tt_ghiChu').value;
+            } else if (loai === "KHONG_NHAN") {
+                data.diaChi = document.getElementById('kn_diaChi').value; data.lyDo = document.getElementById('kn_lyDo').value;
+                data.sdt = document.getElementById('kn_sdt').value; data.traiChu = document.getElementById('kn_traiChu').value;
+            }
+
+            showLoading();
+            callApi(data).then(res => { hideLoading(); alert("✅ " + res.msg); document.querySelectorAll('input,textarea').forEach(i=>i.value=''); }).catch(err => { hideLoading(); alert("Lỗi: " + err); });
+        }
+
+        document.addEventListener('keydown', e => { if(e.key === 'Enter' && e.target.classList.contains('enter-next')) { e.preventDefault(); const inputs = Array.from(document.querySelectorAll('.input-group.active .enter-next, .input-group.active textarea')); const idx = inputs.indexOf(e.target); if(idx > -1 && idx < inputs.length - 1) inputs[idx+1].focus(); else document.getElementById('btnLuu').focus(); }});
+        function doiForm() { document.querySelectorAll('.input-group').forEach(el => el.classList.remove('active')); const loai = document.getElementById('loaiCongViec').value; if(loai) document.getElementById('group_' + loai).classList.add('active'); }
+        function chuyenTab(tabName) { if(tabName === 'NHAP') { document.getElementById('viewNhap').classList.remove('hidden'); document.getElementById('viewXem').classList.add('hidden'); document.getElementById('tabNhap').classList.add('active'); document.getElementById('tabXem').classList.remove('active'); } else { document.getElementById('viewNhap').classList.add('hidden'); document.getElementById('viewXem').classList.remove('hidden'); document.getElementById('tabNhap').classList.remove('active'); document.getElementById('tabXem').classList.add('active'); } }
+    </script>
+</body>
+</html>
